@@ -1,0 +1,10 @@
+[Unit]
+Description=Dispara o backup da loja todo dia as 3h
+
+[Timer]
+OnCalendar=*-*-* 03:00:00
+Persistent=true
+Unit=ufla-shop-backup.service
+
+[Install]
+WantedBy=timers.target

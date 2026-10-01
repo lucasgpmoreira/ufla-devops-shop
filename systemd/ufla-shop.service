@@ -1,0 +1,21 @@
+[Unit]
+Description=ufla-devops-shop --- API da loja
+Documentation=https://github.com/rdurelli/ufla-devops-shop
+After=network-online.target postgresql.service redis-server.service
+Wants=network-online.target redis-server.service
+Requires=postgresql.service
+
+[Service]
+Type=exec
+User=ufla-shop
+Group=ufla-shop
+WorkingDirectory=/opt/ufla-shop
+EnvironmentFile=/etc/ufla-shop.env
+ExecStart=/opt/ufla-shop/.venv/bin/uvicorn app:api --host 127.0.0.1 --port 8000
+Restart=on-failure
+RestartSec=2
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
