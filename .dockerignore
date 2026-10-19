@@ -1,0 +1,42 @@
+# Controle de versao e segredos --- NUNCA na imagem
+.git
+.gitignore
+.github
+.env
+.env.*
+
+# Ambiente e artefatos locais de Python
+.venv
+venv
+__pycache__
+**/__pycache__
+*.py[cod]
+.pytest_cache
+.ruff_cache
+.coverage
+coverage.xml
+
+# Banco SQLite local
+*.db
+*.db-journal
+
+# Nao e codigo de execucao
+tests
+docs
+alunos
+analises
+dados
+scripts
+systemd
+nginx
+requirements-dev.txt
+pyproject.toml
+README.md
+Dockerfile
+.dockerignore
+
+# Editores / SO
+.vscode
+.idea
+*.swp
+.DS_Store
