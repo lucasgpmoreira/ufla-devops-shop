@@ -13,7 +13,7 @@ e `COPY . .`, ainda sem `.dockerignore`.
 ```
 $ docker images ufla-shop
 REPOSITORY   TAG       IMAGE ID       CREATED          SIZE
-ufla-shop    1.0       3818bf4354a5   3 seconds ago    126MB
+ufla-shop    1.0       ba25f3e17582   9 minutes ago    126MB
 ufla-shop    0.1       9ef30d6d2f5e   2 weeks ago      463MB
 
 $ docker image inspect --format '{{.Size}}' ufla-shop:0.1 | numfmt --to=si
@@ -109,38 +109,37 @@ Outras escolhas no `Dockerfile`:
 
 ## 3. Verificação
 
-Obs.: aqui a porta 8000 já está ocupada pelo `ufla-shop.service` da Atividade 3
-(systemd em `127.0.0.1:8000`), por isso publiquei em `8080:8000`. O resto é
-igual ao enunciado.
+Rodei os mesmos comandos do enunciado, na porta 8000, e acrescentei alguns pra
+conferir o número de produtos, o PID 1 e o encerramento.
 
 ```
 $ docker build -t ufla-shop:1.0 .
 $ docker image inspect --format '{{.Size}}' ufla-shop:1.0 | numfmt --to=si
 30M
-$ docker run -d --name loja -p 8080:8000 ufla-shop:1.0
-b7ffd20be9029000932bbcc84d0c4c0afd6028e2819b477f7cc847adf5b1f680
+$ docker run -d --name loja -p 8000:8000 ufla-shop:1.0
+cd7ec93a1d175a63fa231e8c8a7ccfab27324a1bb57654d857b22dca32c77ab8
 $ docker run --rm ufla-shop:1.0 id -u
 10001
 $ sleep 10 && docker inspect --format '{{.State.Health.Status}}' loja
 healthy
-$ curl -s localhost:8080/health && curl -s localhost:8080/api/produtos | head -c 200
-{"status":"ok","versao":"1.0.0"}[{"id":1,"nome":"Caneca DevOps na Prática","descricao":"Cerâmica, 350 ml: 'funciona na minha máquina'","preco":39.9,"estoque":25,"criado_em":"2026-10-19 22:01:38"},{"id":2,"nome":"Camiseta UFLA Com
-$ curl -s localhost:8080/api/produtos | python3 -c 'import json,sys;print(len(json.load(sys.stdin)), "produtos")'
+$ curl -s localhost:8000/health && curl -s localhost:8000/api/produtos | head -c 200
+{"status":"ok","versao":"1.0.0"}[{"id":1,"nome":"Caneca DevOps na Prática","descricao":"Cerâmica, 350 ml: 'funciona na minha máquina'","preco":39.9,"estoque":25,"criado_em":"2026-10-19 22:10:37"},{"id":2,"nome":"Camiseta UFLA Com
+$ curl -s localhost:8000/api/produtos | python3 -c 'import json,sys;print(len(json.load(sys.stdin)), "produtos")'
 12 produtos
 $ docker exec loja sh -c 'ps -o pid,user,args | head -2; ls -l /dados'
 PID   USER     COMMAND
     1 loja     {uvicorn} /opt/venv/bin/python /opt/venv/bin/uvicorn app:api --host 0.0.0.0 --port 8000
 total 16
--rw-r--r--    1 loja     loja         16384 Oct 19 22:01 loja.db
+-rw-r--r--    1 loja     loja         16384 Oct 19 22:10 loja.db
 $ time docker stop loja
 loja
 
-real	0m0.424s
-user	0m0.008s
-sys	0m0.014s
+real	0m0.453s
+user	0m0.017s
+sys	0m0.004s
 $ docker logs loja 2>&1 | tail -4
 INFO:     Waiting for application shutdown.
-2026-10-19 22:01:46,509 INFO loja: ufla-devops-shop encerrando
+2026-10-19 22:10:45,569 INFO loja: ufla-devops-shop encerrando
 INFO:     Application shutdown complete.
 INFO:     Finished server process [1]
 $ docker run --rm ufla-shop:1.0 ls -a /app
@@ -152,7 +151,7 @@ static
 
 O `uvicorn` aparece como PID 1 e o log termina com `Application shutdown
 complete`, ou seja, o `SIGTERM` chegou na aplicação e ela encerrou normalmente
-em 0,42 s, sem precisar esperar os 10 s até o `SIGKILL`.
+em 0,45 s, sem precisar esperar os 10 s até o `SIGKILL`.
 
 ## 4. Por que o `HEALTHCHECK` consulta `/health` e não `/ready`?
 
