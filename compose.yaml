@@ -1,0 +1,64 @@
+# Stack completa da loja: api + PostgreSQL + Redis, com o Nginx na frente.
+# Antes de subir: cp .env.example .env e troque a senha.
+#   docker compose up -d --wait
+
+services:
+  banco:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-loja}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina no .env}
+    volumes:
+      - dados-banco:/var/lib/postgresql/data
+    healthcheck:
+      # $$ para a variavel ser lida dentro do container, nao pelo compose
+      test: ["CMD-SHELL", "pg_isready -U postgres -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+
+  cache:
+    image: redis:7-alpine
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    image: ghcr.io/lucasgpmoreira/ufla-shop:1.0.0
+    restart: unless-stopped
+    environment:
+      # a senha vem do .env; aqui so monta a URL. "banco" e "cache" sao os nomes dos servicos
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:?defina no .env}@banco:5432/${POSTGRES_DB:-loja}
+      REDIS_URL: redis://cache:6379/0
+    depends_on:
+      banco:
+        condition: service_healthy
+      cache:
+        condition: service_healthy
+    # sem ports: so o nginx fala com a api, pela rede interna do compose
+    # o healthcheck (/health) ja vem do HEALTHCHECK da imagem
+
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      # passa pelo proxy: se der 200 aqui, nginx e api estao conversando
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+volumes:
+  dados-banco:
